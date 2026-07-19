@@ -16,7 +16,12 @@ import {
 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-const WS_BASE_URL = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/live`;
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || (() => {
+  if (API_BASE_URL.startsWith('http')) {
+    return API_BASE_URL.replace(/^http/, 'ws') + '/ws/live';
+  }
+  return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/live`;
+})();
 
 export default function Dashboard() {
   const [bins, setBins] = useState([]);

@@ -1,6 +1,9 @@
 # Smart IoT Waste Segregation & Segregator System
 
+**Live Demo:** [https://smart-segregator.vercel.app/](https://smart-segregator.vercel.app/)
+
 A production-ready, real-time IoT monitoring and control dashboard for a Smart Waste Segregator system. It monitors smart bin fill capacities, tracks waste stream chamber breakdowns (Wet/Organic, Dry, Recyclable), alerts sanitation workers on capacity thresholds via webhook, and logs edge-based AI classification events (with automatic LLM fallback verification when camera confidence is low).
+
 
 ## 🚀 Key Features
 

@@ -21,8 +21,9 @@ services:
         value: "*"
 
   # 2. Frontend Static Site (Served via CDN - Free & High Performance)
-  - type: static
+  - type: web
     name: smart-waste-frontend
+    env: static
     buildCommand: npm run build
     publishDir: dist
     root: frontend

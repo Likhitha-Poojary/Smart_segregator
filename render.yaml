@@ -4,7 +4,7 @@ services:
     name: smart-waste-backend
     env: docker
     dockerContext: backend
-    dockerfilePath: Dockerfile
+    dockerfilePath: backend/Dockerfile
     plan: free
     envVars:
       - key: MOCK_MODE
@@ -23,10 +23,10 @@ services:
   # 2. Frontend Static Site (Served via CDN - Free & High Performance)
   - type: web
     name: smart-waste-frontend
-    env: static
+    runtime: static
+    rootDir: frontend
     buildCommand: npm run build
-    publishDir: dist
-    root: frontend
+    staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
         fromService:

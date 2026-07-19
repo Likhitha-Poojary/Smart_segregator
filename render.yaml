@@ -1,0 +1,33 @@
+services:
+  # 1. Backend Web Service (FastAPI)
+  - type: web
+    name: smart-waste-backend
+    env: docker
+    dockerContext: backend
+    dockerfilePath: Dockerfile
+    plan: free
+    envVars:
+      - key: MOCK_MODE
+        value: "false" # Set to "true" to run with simulated data without MongoDB/MQTT
+      - key: MONGO_URI
+        value: mongodb://localhost:27017 # Replace with your MongoDB Atlas connection string
+      - key: MONGO_DB
+        value: smart_waste_db
+      - key: MQTT_BROKER
+        value: broker.hivemq.com # Replace with your MQTT broker address
+      - key: MQTT_PORT
+        value: "1883"
+      - key: ALLOWED_ORIGINS
+        value: "*"
+
+  # 2. Frontend Web Service (Nginx + React build)
+  - type: web
+    name: smart-waste-frontend
+    env: docker
+    dockerContext: frontend
+    dockerfilePath: Dockerfile
+    plan: free
+    # Note: If hosting frontend and backend on separate domains on Render,
+    # you should define these variables in the Render Dashboard settings for the frontend:
+    # VITE_API_URL = https://smart-waste-backend.onrender.com
+    # VITE_WS_URL = wss://smart-waste-backend.onrender.com/ws/live

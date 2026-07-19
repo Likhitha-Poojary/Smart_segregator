@@ -4,12 +4,54 @@ import {
   Trash2, Edit2, Sliders, Brain, RefreshCcw, Send, Settings, Terminal
 } from 'lucide-react';
 
-export default function ControlDashboard({ bins, onEdit, apiBaseUrl }) {
+export default function ControlDashboard({ 
+  bins, 
+  onEdit, 
+  apiBaseUrl, 
+  demoMode = false, 
+  setBins, 
+  setAlerts, 
+  setClassifications 
+}) {
   const [selectedCategories, setSelectedCategories] = useState({});
   const [loadingBinId, setLoadingBinId] = useState(null);
   const [escalatedStates, setEscalatedStates] = useState({});
 
   const handleAction = async (binId, endpoint, body = null) => {
+    if (demoMode) {
+      if (endpoint === 'empty') {
+        setBins((prevBins) =>
+          prevBins.map((b) =>
+            b.id === binId
+              ? { ...b, fill_pct: parseFloat((4.0 + Math.random() * 6).toFixed(1)), status: "Normal", last_updated: new Date().toISOString() }
+              : b
+          )
+        );
+      } else if (endpoint === 'fill') {
+        setBins((prevBins) =>
+          prevBins.map((b) => {
+            if (b.id === binId) {
+              const fill = parseFloat((92.0 + Math.random() * 5).toFixed(1));
+              setAlerts((prevAlerts) => [
+                {
+                  bin_id: b.id,
+                  bin_name: b.name,
+                  timestamp: new Date().toISOString(),
+                  fill_pct_at_alert: fill,
+                  notified: true,
+                  channel: "webhook"
+                },
+                ...prevAlerts
+              ].slice(0, 100));
+              return { ...b, fill_pct: fill, status: "Alert sent", last_updated: new Date().toISOString() };
+            }
+            return b;
+          })
+        );
+      }
+      return;
+    }
+
     setLoadingBinId(binId);
     try {
       const url = body 
@@ -38,6 +80,24 @@ export default function ControlDashboard({ bins, onEdit, apiBaseUrl }) {
     const confidence = isEscalated
       ? parseFloat((50 + Math.random() * 22).toFixed(1))
       : parseFloat((85 + Math.random() * 14.5).toFixed(1));
+
+    if (demoMode) {
+      const targetBin = bins.find((b) => b.id === binId);
+      if (targetBin) {
+        setClassifications((prevEvents) => [
+          {
+            bin_id: binId,
+            bin_name: targetBin.name,
+            timestamp: new Date().toISOString(),
+            category: category,
+            confidence: confidence,
+            escalated_to_llm: isEscalated
+          },
+          ...prevEvents
+        ].slice(0, 50));
+      }
+      return;
+    }
 
     handleAction(binId, 'classify', {
       category,

@@ -23,12 +23,56 @@ const WS_BASE_URL = import.meta.env.VITE_WS_URL || (() => {
   return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/live`;
 })();
 
+const DEFAULT_BINS = [
+  {
+    id: "bin_a",
+    name: "Downtown Square (Bin A)",
+    location: { lat: 12.9716, lng: 77.5946 },
+    threshold: 85.0,
+    fill_pct: 25.0,
+    status: "Normal",
+    created_at: new Date().toISOString(),
+    last_updated: new Date().toISOString()
+  },
+  {
+    id: "bin_b",
+    name: "Central Park (Bin B)",
+    location: { lat: 12.9750, lng: 77.5900 },
+    threshold: 80.0,
+    fill_pct: 40.0,
+    status: "Normal",
+    created_at: new Date().toISOString(),
+    last_updated: new Date().toISOString()
+  },
+  {
+    id: "bin_c",
+    name: "Metro Station (Bin C)",
+    location: { lat: 12.9690, lng: 77.6010 },
+    threshold: 90.0,
+    fill_pct: 65.0,
+    status: "Watching",
+    created_at: new Date().toISOString(),
+    last_updated: new Date().toISOString()
+  },
+  {
+    id: "bin_d",
+    name: "University Campus (Bin D)",
+    location: { lat: 12.9800, lng: 77.5850 },
+    threshold: 85.0,
+    fill_pct: 10.0,
+    status: "Normal",
+    created_at: new Date().toISOString(),
+    last_updated: new Date().toISOString()
+  }
+];
+
 export default function Dashboard() {
   const [bins, setBins] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [classifications, setClassifications] = useState([]);
   const [selectedBin, setSelectedBin] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
   
   // Navigation tab state: 'operations' | 'analytics' | 'control'
   const [activeTab, setActiveTab] = useState('operations');
@@ -40,6 +84,23 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [alertsLoading, setAlertsLoading] = useState(true);
 
+  // Activates browser-only demo simulation when backend connection fails
+  const activateDemoMode = () => {
+    setDemoMode(true);
+    setBins(DEFAULT_BINS);
+    setAlerts([
+      {
+        bin_id: "bin_c",
+        bin_name: "Metro Station (Bin C)",
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
+        fill_pct_at_alert: 65.0,
+        notified: true,
+        channel: "webhook"
+      }
+    ]);
+    setAlertsLoading(false);
+  };
+
   // Fetch all bins
   const fetchBins = async () => {
     try {
@@ -47,9 +108,13 @@ export default function Dashboard() {
       if (res.ok) {
         const data = await res.json();
         setBins(data);
+        setDemoMode(false);
+      } else {
+        throw new Error("API responded with error");
       }
     } catch (e) {
-      console.error("Error fetching bins:", e);
+      console.warn("Backend server offline. Activating standalone client-side demo mode...", e);
+      activateDemoMode();
     } finally {
       setLoading(false);
     }
@@ -69,6 +134,102 @@ export default function Dashboard() {
       setAlertsLoading(false);
     }
   };
+
+  // Standalone client-side data simulator loop
+  useEffect(() => {
+    if (!demoMode) return;
+
+    const WASTE_CATEGORIES = [
+      { name: "Plastic Bottle", group: "Recyclable" },
+      { name: "Aluminum Can", group: "Recyclable" },
+      { name: "Cardboard Box", group: "Recyclable" },
+      { name: "Food Waste", group: "Wet" },
+      { name: "Apple Core", group: "Wet" },
+      { name: "Coffee Grounds", group: "Wet" },
+      { name: "Paper Napkin", group: "Dry" },
+      { name: "Styrofoam Cup", group: "Dry" },
+      { name: "Plastic Wrapper", group: "Dry" }
+    ];
+
+    let step = 0;
+    const interval = setInterval(() => {
+      step += 1;
+
+      // 1. Update bin levels
+      setBins((prevBins) =>
+        prevBins.map((bin) => {
+          let fill = bin.fill_pct;
+          let status = bin.status;
+
+          if (fill >= 98.0) {
+            if (Math.random() < 0.25) {
+              fill = parseFloat((5.0 + Math.random() * 10).toFixed(1));
+              status = "Normal";
+            } else {
+              fill = Math.min(100.0, fill + parseFloat((0.1 + Math.random() * 0.5).toFixed(1)));
+            }
+          } else {
+            const rate = bin.id === "bin_a" || bin.id === "bin_c" 
+              ? 1.0 + Math.random() * 3.0 
+              : 0.5 + Math.random() * 2.0;
+            fill = Math.min(100.0, parseFloat((fill + rate).toFixed(1)));
+          }
+
+          if (fill > bin.threshold) {
+            if (status !== "Alert sent") {
+              status = "Alert sent";
+              setAlerts((prevAlerts) => [
+                {
+                  bin_id: bin.id,
+                  bin_name: bin.name,
+                  timestamp: new Date().toISOString(),
+                  fill_pct_at_alert: fill,
+                  notified: true,
+                  channel: "webhook"
+                },
+                ...prevAlerts
+              ].slice(0, 100));
+            }
+          } else if (fill >= 60.0) {
+            status = "Watching";
+          } else {
+            status = "Normal";
+          }
+
+          return {
+            ...bin,
+            fill_pct: fill,
+            status,
+            last_updated: new Date().toISOString()
+          };
+        })
+      );
+
+      // 2. Add classification events
+      if (step % 2 === 0) {
+        const activeBin = DEFAULT_BINS[Math.floor(Math.random() * DEFAULT_BINS.length)];
+        const item = WASTE_CATEGORIES[Math.floor(Math.random() * WASTE_CATEGORIES.length)];
+        const escalated = Math.random() < 0.15;
+        const confidence = escalated
+          ? parseFloat((50 + Math.random() * 22).toFixed(1))
+          : parseFloat((82 + Math.random() * 17.5).toFixed(1));
+
+        setClassifications((prevEvents) => [
+          {
+            bin_id: activeBin.id,
+            bin_name: activeBin.name,
+            timestamp: new Date().toISOString(),
+            category: item.group,
+            confidence: confidence,
+            escalated_to_llm: escalated
+          },
+          ...prevEvents
+         ].slice(0, 50));
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [demoMode]);
 
   // Initial fetch
   useEffect(() => {
@@ -108,6 +269,26 @@ export default function Dashboard() {
 
   // CRUD actions
   const handleSaveBin = async (binData) => {
+    if (demoMode) {
+      setBins((prevBins) => {
+        const isEdit = prevBins.some((b) => b.id === binData.id);
+        if (isEdit) {
+          return prevBins.map((b) => b.id === binData.id ? { ...b, ...binData, last_updated: new Date().toISOString() } : b);
+        } else {
+          return [...prevBins, {
+            ...binData,
+            fill_pct: 0.0,
+            status: "Normal",
+            created_at: new Date().toISOString(),
+            last_updated: new Date().toISOString()
+          }];
+        }
+      });
+      setIsFormOpen(false);
+      setBinToEdit(null);
+      return;
+    }
+
     const isEdit = bins.some((b) => b.id === binData.id);
     const method = isEdit ? 'PUT' : 'POST';
     const url = isEdit ? `${API_BASE_URL}/bins/${binData.id}` : `${API_BASE_URL}/bins`;
@@ -429,6 +610,10 @@ export default function Dashboard() {
                 setIsFormOpen(true);
               }}
               apiBaseUrl={API_BASE_URL}
+              demoMode={demoMode}
+              setBins={setBins}
+              setAlerts={setAlerts}
+              setClassifications={setClassifications}
             />
           )}
 

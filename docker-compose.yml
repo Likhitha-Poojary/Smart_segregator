@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: iot_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: iot_mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  backend:
+    build: ./backend
+    container_name: iot_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB=smart_waste_db
+      - MQTT_BROKER=mosquitto
+      - MQTT_PORT=1883
+      - TWILIO_WEBHOOK_URL=http://httpbin.org/post  # Default mock webhook
+    depends_on:
+      - mongodb
+      - mosquitto
+
+  frontend:
+    build: ./frontend
+    container_name: iot_frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000/ws/live
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:

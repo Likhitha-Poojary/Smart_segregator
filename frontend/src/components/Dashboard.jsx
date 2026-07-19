@@ -11,17 +11,19 @@ import ControlDashboard from './ControlDashboard';
 import { CardSkeleton, MapSkeleton } from './SkeletonLoader';
 import { 
   Plus, ShieldAlert, Layers, LayoutDashboard, BarChart3, 
-  Terminal, ShieldCheck, HelpCircle, Activity, HardDrive
+  Terminal, ShieldCheck, HelpCircle, Activity, HardDrive,
+  Menu, X
 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/live';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/live`;
 
 export default function Dashboard() {
   const [bins, setBins] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [classifications, setClassifications] = useState([]);
   const [selectedBin, setSelectedBin] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Navigation tab state: 'operations' | 'analytics' | 'control'
   const [activeTab, setActiveTab] = useState('operations');
@@ -148,20 +150,32 @@ export default function Dashboard() {
         
         <div>
           {/* Logo & Header */}
-          <div className="p-5 border-b border-emerald-900/50 flex items-center gap-3">
-            <div className="bg-emerald-800 p-2 rounded-xl border border-emerald-700">
-              <Layers className="text-emerald-400" size={20} />
+          <div className="p-5 border-b border-emerald-900/50 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-800 p-2 rounded-xl border border-emerald-700">
+                <Layers className="text-emerald-400" size={20} />
+              </div>
+              <div>
+                <h1 className="font-extrabold text-sm tracking-tight leading-none text-emerald-50">Smart Segregator</h1>
+                <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider block mt-1">Sanitation Dashboard</span>
+              </div>
             </div>
-            <div>
-              <h1 className="font-extrabold text-sm tracking-tight leading-none text-emerald-50">Smart Segregator</h1>
-              <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider block mt-1">Sanitation Dashboard</span>
-            </div>
+            {/* Hamburger Button on mobile */}
+            <button 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 hover:bg-emerald-900/60 rounded-lg text-emerald-300 transition-colors"
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
 
           {/* Navigation Links */}
-          <nav className="p-4 space-y-1">
+          <nav className={`${mobileMenuOpen ? 'block' : 'hidden'} md:block p-4 space-y-1`}>
             <button
-              onClick={() => setActiveTab('operations')}
+              onClick={() => {
+                setActiveTab('operations');
+                setMobileMenuOpen(false);
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'operations' 
                   ? 'bg-emerald-800/80 text-white border border-emerald-700 shadow-inner' 
@@ -173,7 +187,10 @@ export default function Dashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('analytics')}
+              onClick={() => {
+                setActiveTab('analytics');
+                setMobileMenuOpen(false);
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'analytics' 
                   ? 'bg-emerald-800/80 text-white border border-emerald-700 shadow-inner' 
@@ -185,7 +202,10 @@ export default function Dashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('control')}
+              onClick={() => {
+                setActiveTab('control');
+                setMobileMenuOpen(false);
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'control' 
                   ? 'bg-emerald-800/80 text-white border border-emerald-700 shadow-inner' 
@@ -199,7 +219,7 @@ export default function Dashboard() {
         </div>
 
         {/* Sidebar Footer / Connection Status */}
-        <div className="p-4 border-t border-emerald-900/50 bg-emerald-950/40 space-y-4">
+        <div className={`${mobileMenuOpen ? 'block' : 'hidden'} md:block p-4 border-t border-emerald-900/50 bg-emerald-950/40 space-y-4`}>
           
           {/* WS Status indicators */}
           <div className="bg-emerald-900/30 border border-emerald-800/40 rounded-xl p-3 space-y-2">
@@ -220,13 +240,13 @@ export default function Dashboard() {
             onClick={() => {
               setBinToEdit(null);
               setIsFormOpen(true);
+              setMobileMenuOpen(false);
             }}
             className="w-full flex items-center justify-center gap-1.5 bg-emerald-700 hover:bg-emerald-600 border border-emerald-600 hover:border-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-md transition-all"
           >
             <Plus size={14} /> Add Smart Bin
           </button>
         </div>
-
       </aside>
 
       {/* 🚀 Main Workspace Area */}

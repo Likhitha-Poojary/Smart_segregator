@@ -11,3 +11,6 @@ TWILIO_WEBHOOK_URL = os.getenv("TWILIO_WEBHOOK_URL", "http://httpbin.org/post")
 
 # Enable in-memory Mock Mode if explicitly set to "true" (defaults to "true" for direct local runs)
 MOCK_MODE = os.getenv("MOCK_MODE", "true").lower() == "true"
+
+# Allowed CORS origins (comma-separated list, e.g. "http://localhost:5173,http://example.com")
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",") if o.strip()]

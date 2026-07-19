@@ -8,6 +8,12 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand({ping: 1})", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   mosquitto:
     image: eclipse-mosquitto:latest
@@ -16,6 +22,12 @@ services:
       - "1883:1883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "1883"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   backend:
     build: ./backend
@@ -23,23 +35,24 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - MOCK_MODE=false
       - MONGO_URI=mongodb://mongodb:27017
       - MONGO_DB=smart_waste_db
       - MQTT_BROKER=mosquitto
       - MQTT_PORT=1883
-      - TWILIO_WEBHOOK_URL=http://httpbin.org/post  # Default mock webhook
+      - TWILIO_WEBHOOK_URL=http://httpbin.org/post
+      - ALLOWED_ORIGINS=*
     depends_on:
-      - mongodb
-      - mosquitto
+      mongodb:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
     container_name: iot_frontend
     ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:8000
-      - VITE_WS_URL=ws://localhost:8000/ws/live
+      - "5173:80"
     depends_on:
       - backend
 

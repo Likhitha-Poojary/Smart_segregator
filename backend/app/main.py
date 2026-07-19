@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import logging
 
-from app.config import MOCK_MODE
+from app.config import MOCK_MODE, ALLOWED_ORIGINS
 from app.db import init_db, close_db
 from app.services.mqtt_client import start_mqtt_client, stop_mqtt_client
 from app.services.mock_manager import start_mock_simulation
@@ -49,8 +49,8 @@ app = FastAPI(
 # Allow CORS for easy local dashboard connection
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials="*" not in ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
